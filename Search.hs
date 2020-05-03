@@ -4,6 +4,8 @@
 module Search where
 
 import ProblemState
+import Data.Maybe
+
 {-
     *** TODO ***
 
@@ -42,6 +44,12 @@ nodeAction = action
 nodeChildren :: Node s a -> [Node s a]
 nodeChildren = children
 
+-- showNode :: (ProblemState s a, Show s) => Node s a -> [Char]
+-- showNode (NewNode s _ _ _ _) = show s
+
+-- instance (ProblemState s a, Show s) => Show (Node s a)
+--     where show = showNode
+
 {-
     *** TODO ***
 
@@ -68,15 +76,15 @@ createStateSpace st = createNewNode st Nothing 0 Nothing
 
 -}
 
-bfsHelper :: ([Node s a], [Node s a]) -> [([Node s a], [Node s a])]
-bfsHelper (_, []) = []
-bfsHelper anterior@(_, frontier) = [anterior] ++ (bfsHelper current)
+bfsHelper :: (ProblemState s a, Eq s, Eq a) => ([Node s a], [Node s a]) -> [s] -> [([Node s a], [Node s a])]
+bfsHelper (_, []) _ = [([], [])]
+bfsHelper anterior@(_, frontier) visited =  [anterior] ++ (bfsHelper current (visited ++ (map nodeState chldrn)))
         where
-            chldrn = nodeChildren (head frontier) 
+            chldrn = filter (\node -> not (elem (nodeState node) visited)) (nodeChildren (head frontier))
             current = (chldrn, (tail frontier) ++ chldrn)
 
-bfs :: Ord s => Node s a -> [([Node s a], [Node s a])]
-bfs node = bfsHelper ([node], [node])--[(nodeChildren node, f)]
+bfs :: (ProblemState s a, Ord s, Eq s, Eq a) => Node s a -> [([Node s a], [Node s a])]
+bfs node = bfsHelper ([node], [node]) [nodeState node]
 
 
 
@@ -87,9 +95,27 @@ bfs node = bfsHelper ([node], [node])--[(nodeChildren node, f)]
     intersecția dintre cele două frontiere.
 -}
 
-bidirBFS :: Ord s => Node s a -> Node s a -> (Node s a, Node s a)
-bidirBFS = undefined
+intersect :: (ProblemState s a, Eq s) => [Node s a] -> [Node s a] -> Bool
+intersect l1 l2 = 0 < length (filter (\x -> elem (nodeState x) (map nodeState l2)) l1)
 
+intersection :: (ProblemState s a, Eq s) => [Node s a] -> [Node s a] -> (Node s a, Node s a)
+intersection l1 l2 = (s1, s2)
+    where
+        s1 = head (filter (\x -> elem (nodeState x) (map nodeState l2)) l1)
+        s2 = head (filter (\x -> (nodeState x) == (nodeState s1)) l2)
+
+bidirBFSHelper :: (ProblemState s a, Eq a, Eq s, Ord s) => [([Node s a], [Node s a])] -> [([Node s a], [Node s a])] -> (Node s a, Node s a)
+bidirBFSHelper b1 b2
+    | intersect (fst (head b1)) (snd (head b2)) = intersection (fst (head b1)) (snd (head b2))
+    | intersect (fst (head b2)) (snd (head b1)) = intersection (snd (head b1)) (fst (head b2))
+    | otherwise = bidirBFSHelper (tail b1) (tail b2)
+
+
+bidirBFS :: (ProblemState s a, Eq a, Eq s, Ord s) => Node s a -> Node s a -> (Node s a, Node s a)
+bidirBFS node1 node2 = bidirBFSHelper bfs1 bfs2
+    where
+        bfs1 = bfs node1
+        bfs2 = bfs node2
 
 {-
     *** TODO ***
@@ -102,10 +128,14 @@ bidirBFS = undefined
 
 -}
 
-extractPath :: Node s a -> [(Maybe a, s)]
-extractPath = undefined
+nodeParentMaybe :: Maybe (Node s a) -> Maybe (Node s a)
+nodeParentMaybe Nothing = Nothing
+nodeParentMaybe (Just node) = nodeParent node
 
-
+extractPath :: (Eq a, Eq s) => Node s a -> [(Maybe a, s)]
+extractPath n = reverse $ map (\node -> ((nodeAction (fromJust node), nodeState (fromJust node)))) p
+    where
+        p = (Just n) : (takeWhile (\x -> x /= Nothing) $ iterate nodeParentMaybe (nodeParent n))
 
 {-
     *** TODO ***
@@ -120,8 +150,14 @@ extractPath = undefined
     și se încheie în starea finală.
 -}
 
-solve :: (ProblemState s a, Ord s)
+solve :: (ProblemState s a, Ord s, Eq a)
       => s          -- Starea inițială de la care se pornește
       -> s          -- Starea finală la care se ajunge
       -> [(Maybe a, s)]   -- Lista perechilor
-solve = undefined
+solve initial final = extractPath m1 ++ secondHalf
+    where
+        (m1, m2) = bidirBFS (createStateSpace initial) $ createStateSpace final
+        path2 = reverse $ extractPath m2
+        actions =  map fromJust $ map fst $ init $ path2
+        states =  map snd $ tail $ path2
+        secondHalf = map (\x -> (Just (fst x), snd x)) $ map reverseAction $ zip actions states

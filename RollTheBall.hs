@@ -55,20 +55,7 @@ data Level = Level (A.Array Position Cell)
 
 showLevel :: Level -> [Char]
 showLevel (Level arr) = endl : showLevelHelper (A.elems arr) (1 + (snd $ snd $ A.bounds arr))
--- showLevel l@(Level arr) = endl : showLevelHelper l positions height
---     where
---         height = 1 + (fst $ snd $ A.bounds arr)
---         width = 1 + (snd $ snd $ A.bounds arr)
---         m = width * height - 1
---         positions = [((quot i width), (mod i width)) | i <- [0..m]]
 
--- showLevelHelper :: Level -> [Position] -> Int -> [Char]
--- showLevelHelper l@(Level arr) positions height = foldr (\x -> printCharacter l height x) [] positions
-
--- printCharacter :: Level -> Int -> [Char] -> Position -> [Char]
--- printCharacter (Level arr) width xs pos@(x, y)
---     | y == width - 1 = xs ++ [getChr (arr A.! pos)] ++ [endl]
---     | otherwise = xs ++ [getChr (arr A.! pos)]
 showLevelHelper :: [Cell] -> Int -> [Char]
 showLevelHelper elemlist width
     | elemlist == [] = []
@@ -362,20 +349,6 @@ func l@(Level arr) pos
         s = stateBuilder l pos South
         d = stateBuilder l pos East
 
--- level1Solved :: Level
--- level1Solved = createLevel (3,3) [
---     (startDown, (0,0)), (emptyCell, (0,1)), (emptyCell, (0,2)), (emptyCell, (0,3)),
---     (verPipe, (1,0)), (emptyCell, (1,1)), (emptyCell, (1,2)), (emptyCell, (1,3)),
---     (verPipe, (2,0)), (emptyCell, (2,2)), (emptyCell, (2,3)),
---     (botLeft, (3,0)), (horPipe, (3,1)), (horPipe, (3,2)), (winLeft, (3,3))
---     ]
-
--- level3 = createLevel (3,3) [
---     (startDown, (0,0)), (emptyCell, (0,1)), (emptyCell, (0,2)), (emptyCell, (0,3)),
---     (verPipe, (1,0)), (emptyCell, (1,1)), (emptyCell, (1,2)), (winDown, (1,3)),
---     (botLeft, (2,0)), (horPipe, (2,1)), (botRight, (2,2)), (emptyCell, (2,3)),
---     (horPipe, (3,3))
---     ]
 
 instance ProblemState Level (Position, Directions) where
     successors l@(Level arr) = foldr (++) [] (map (func l) positions) --[(((0,0)South), l)]
@@ -388,7 +361,7 @@ instance ProblemState Level (Position, Directions) where
     isGoal = wonLevel
 
     -- reverseAction :: (a, s) -> (a, s)
-    reverseAction ((pos, dir), l) = ((nextP, compDir), moveCell pos compDir l)
+    reverseAction ((pos, direction), l) = ((nextP, compDir), moveCell pos compDir l)
         where
-            compDir = getComplementary dir
-            nextP = nextPos pos compDir
+            compDir = getComplementary direction
+            nextP = nextPos pos direction
