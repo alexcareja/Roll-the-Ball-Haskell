@@ -29,6 +29,7 @@ data Node s a = NewNode {state :: s,
     *** TODO ***
     Gettere folosite pentru accesul la câmpurile nodului
 -}
+
 nodeState :: Node s a -> s
 nodeState = state 
 
@@ -43,12 +44,6 @@ nodeAction = action
 
 nodeChildren :: Node s a -> [Node s a]
 nodeChildren = children
-
--- showNode :: (ProblemState s a, Show s) => Node s a -> [Char]
--- showNode (NewNode s _ _ _ _) = show s
-
--- instance (ProblemState s a, Show s) => Show (Node s a)
---     where show = showNode
 
 {-
     *** TODO ***
@@ -86,8 +81,6 @@ bfsHelper anterior@(_, frontier) visited =  [anterior] ++ (bfsHelper current (vi
 bfs :: (ProblemState s a, Ord s, Eq s, Eq a) => Node s a -> [([Node s a], [Node s a])]
 bfs node = bfsHelper ([node], [node]) [nodeState node]
 
-
-
 {-
     *** TODO ***
   
@@ -104,15 +97,19 @@ intersection l1 l2 = (s1, s2)
         s1 = head (filter (\x -> elem (nodeState x) (map nodeState l2)) l1)
         s2 = head (filter (\x -> (nodeState x) == (nodeState s1)) l2)
 
-bidirBFSHelper :: (ProblemState s a, Eq a, Eq s, Ord s) => [([Node s a], [Node s a])] -> [([Node s a], [Node s a])] -> (Node s a, Node s a)
-bidirBFSHelper b1 b2
-    | intersect (fst (head b1)) (snd (head b2)) = intersection (fst (head b1)) (snd (head b2))
-    | intersect (fst (head b2)) (snd (head b1)) = intersection (snd (head b1)) (fst (head b2))
-    | otherwise = bidirBFSHelper (tail b1) (tail b2)
+newIntersect :: (ProblemState s a, Eq a, Eq s, Ord s) => (([Node s a], [Node s a]), ([Node s a], [Node s a])) -> Bool
+newIntersect (b1, b2)
+    | intersect (fst b1) (snd b2) = True
+    | intersect (fst b2) (snd b1) = True
+    | otherwise = False
 
+newIntersection :: (ProblemState s a, Eq a, Eq s, Ord s) => (([Node s a], [Node s a]), ([Node s a], [Node s a])) -> (Node s a, Node s a)
+newIntersection (b1, b2)
+    | intersect (fst b1) (snd b2) = intersection (fst b1) (snd b2)
+    | otherwise = intersection (snd b1) (fst b2)
 
 bidirBFS :: (ProblemState s a, Eq a, Eq s, Ord s) => Node s a -> Node s a -> (Node s a, Node s a)
-bidirBFS node1 node2 = bidirBFSHelper bfs1 bfs2
+bidirBFS node1 node2 = newIntersection $ head $ filter newIntersect $ zip bfs1 bfs2
     where
         bfs1 = bfs node1
         bfs2 = bfs node2

@@ -52,19 +52,15 @@ data Level = Level (A.Array Position Cell)
     Atenție! Fiecare linie este urmată de \n (endl in Pipes).
 -}
 
-
 showLevel :: Level -> [Char]
-showLevel (Level arr) = endl : showLevelHelper (A.elems arr) (1 + (snd $ snd $ A.bounds arr))
+showLevel (Level arr) = endl : foldr (++) [] ( map (\x -> showLevelHelper x width) (zip (A.elems arr) [1..]))
+    where width = 1 + (snd $ snd $ A.bounds arr)
 
-showLevelHelper :: [Cell] -> Int -> [Char]
-showLevelHelper elemlist width
-    | elemlist == [] = []
-    | otherwise = (showLine (take width elemlist)) ++ (showLevelHelper (drop width elemlist) width)
+showLevelHelper :: (Cell, Int) -> Int -> [Char]
+showLevelHelper (cell, idx) width
+    | (mod idx width) == 0 = [getChr cell] ++ [endl]
+    | otherwise = [getChr cell]
 
-showLine :: [Cell] -> [Char]
-showLine elemlist
-    | elemlist == [] = [endl]
-    | otherwise = (getChr (head elemlist)) : (showLine $ tail elemlist)
 
 getChr :: Cell -> Char
 getChr EmptySpace = emptySpace
